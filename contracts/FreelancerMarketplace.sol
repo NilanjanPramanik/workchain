@@ -216,7 +216,7 @@ contract FreelancerMarketplace {
 
     struct Freelancer {
         address freelancerAddress;
-        // string name;
+        string name;
         string bio;
         string skills;
         uint rating;
@@ -224,6 +224,32 @@ contract FreelancerMarketplace {
 
     uint public jobCount;
     mapping(uint => Job) public jobs;
+    mapping(address => Freelancer) public freelancers;
+
+    function registerFreelancer(
+        string memory _name,
+        string memory _bio,
+        string memory _skills
+    ) public {
+        require(
+            bytes(freelancers[msg.sender].name).length == 0,
+            "Freelancer already registered"
+        );
+
+        freelancers[msg.sender] = Freelancer({
+            freelancerAddress: msg.sender,
+            name: _name,
+            bio: _bio,
+            skills: _skills,
+            rating: 0 // Initial rating is 0
+        });
+    }
+
+    function isFreelancerRegistered(
+        address _freelancer
+    ) public view returns (bool) {
+        return bytes(freelancers[_freelancer].name).length > 0;
+    }
 
     event JobCreated(
         uint jobId,

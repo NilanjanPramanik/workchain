@@ -5,7 +5,13 @@ import { getContract } from "../utils/contract";
 const FreelancerScreen = () => {
   const [jobs, setJobs] = useState([]);
   const [currentAccount, setCurrentAccount] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState(null);
   const [workLink, setWorkLink] = useState(""); // State to store work link
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [skills, setSkills] = useState("");
 
   useEffect(() => {
     fetchJobs();
@@ -22,8 +28,14 @@ const FreelancerScreen = () => {
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-      setCurrentAccount(accounts[1]);
-      console.log("Connected wallet:", accounts[1]);
+
+      setCurrentAccount(accounts[0]);
+      console.log("Connected wallet:", accounts[0]);
+
+      // Check if the freelancer is registered
+      const contract = await getContract();
+      const registered = await contract.isFreelancerRegistered(accounts[0]);
+      setIsRegistered(registered);
     } catch (error) {
       console.error("Error connecting wallet:", error);
     }
@@ -103,9 +115,68 @@ const FreelancerScreen = () => {
     setJobs(jobsData);
   };
 
+  const registerFreelancer = async () => {
+    try {
+      const contract = await getContract();
+      const tx = await contract.registerFreelancer(name, bio, skills);
+      await tx.wait();
+
+      console.log("Freelancer registered successfully!");
+      setIsRegistered(true); // Update state after registration
+    } catch (error) {
+      console.error("Error registering freelancer:", error);
+    }
+  };
+
+  console.log(currentAccount);
+
+  if (!isRegistered)
+    return (
+      <div>
+        <h2>Register as a Freelancer</h2>
+        <input
+          type="text"
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="Bio"
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="Skills (comma-separated)"
+          value={skills}
+          onChange={(e) => setSkills(e.target.value)}
+        />
+        <button onClick={registerFreelancer}>Register</button>
+      </div>
+    );
+
   return (
     <div className="App">
       <h1>Freelancer Marketplace for Freelancer</h1>
+
+      <select
+        value={selectedAccount}
+        onChange={(e) => {
+          setSelectedAccount(e.target.value);
+          setCurrentAccount(e.target.value);
+        }}
+      >
+        {accounts.map((account) => (
+          <option key={account} value={account}>
+            {account}
+          </option>
+        ))}
+      </select>
+
+      <button onClick={() => console.log("Selected Account:", selectedAccount)}>
+        Confirm Selection
+      </button>
 
       {/* List of Jobs */}
       {jobs.map((job) => (
