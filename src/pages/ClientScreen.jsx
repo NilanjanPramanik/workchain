@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { getContract } from "../utils/contract";
+import JobCard from "../components/JobCard";
 
 const ClientScreen = () => {
   const [currentAccount, setCurrentAccount] = useState(null);
@@ -8,6 +9,7 @@ const ClientScreen = () => {
   const [jobTitle, setJobTitle] = useState("");
   const [description, setDescription] = useState("");
   const [budget, setBudget] = useState("");
+  const [duration, setDuration] = useState("");
 
   useEffect(() => {
     fetchJobs();
@@ -47,12 +49,15 @@ const ClientScreen = () => {
         jobsArray.push({
           id: job[0].toString(),
           description: job[1],
-          price: ethers.formatEther(job[2]), // Convert from Wei to ETH
-          employer: job[3],
-          freelancer: job[4],
-          isAssigned: job[5],
-          isCompleted: job[6],
-          isPaid: job[7],
+          price: ethers.formatEther(job[2]),
+          duration: job[3], // Convert from Wei to ETH
+          employer: job[4],
+          freelancer: job[5],
+          appliedFreelancers: job[6],
+          isAssigned: job[7],
+          isCompleted: job[8],
+          isPaid: job[9],
+          workLink: job[10],
         });
       }
 
@@ -63,7 +68,7 @@ const ClientScreen = () => {
     }
   };
 
-  const createJob = async (description, price) => {
+  const createJob = async (description, price, duration) => {
     try {
       const contract = await getContract();
 
@@ -72,39 +77,48 @@ const ClientScreen = () => {
         return;
       }
 
-      const priceInWei = ethers.parseEther(price.toString()); // Convert price to wei
+      const priceInWei = ethers.parseEther(price.toString()); // Convert price to Wei
 
-      console.log("Creating job with:", description, priceInWei.toString());
-
-      // Send ETH as msg.value (required by the contract)
-      const tx = await contract.createJob(description, {
-        value: priceInWei, // Set the transaction value
-      });
+      // Corrected function call: Pass function parameters first, then msg.value
+      const tx = await contract.createJob(
+        description,
+        parseInt(duration),
+        "N/A",
+        {
+          value: priceInWei,
+        }
+      );
 
       await tx.wait(); // Wait for transaction confirmation
       console.log("Job created successfully!");
+
+      const balance = await contract.getContractBalance();
+      console.log("Contract balance:", ethers.formatEther(balance.toString()));
     } catch (error) {
       console.error("Error creating job:", error);
     }
   };
 
-  const acceptFreelancer = async (jobId) => {
+  const approveWork = async (jobId) => {
     try {
       const contract = await getContract();
-      if (!contract) {
-        console.error("Contract not initialized");
-        return;
-      }
-
-      const tx = await contract.acceptFreelancer(jobId);
+      const tx = await contract.approveWork(jobId);
       await tx.wait();
+      console.log("Work approved and payment released!");
+      // loadJobs(); // Refresh jobs after approval
 
-      console.log(`Freelancer accepted for job #${jobId}`);
-      fetchJobs(); // Refresh job list
+      const balance = await contract.getContractBalance();
+      console.log("Contract balance:", ethers.formatEther(balance.toString()));
     } catch (error) {
-      console.error("Error accepting freelancer:", error);
+      console.error("Error approving work:", error);
     }
   };
+
+  // const loadJobs = async () => {
+  //   const contract = await getContract();
+  //   // const jobsData = await contract.getAllJobs();
+  //   // setJobs(jobsData);
+  // };
 
   return (
     <div className="App">
@@ -124,70 +138,26 @@ const ClientScreen = () => {
           value={budget}
           onChange={(e) => setBudget(e.target.value)}
         />
-        <button onClick={() => createJob(description, budget)}>
+        <input
+          type="text"
+          placeholder="Duration (days)"
+          value={duration}
+          onChange={(e) => setDuration(e.target.value)}
+        />
+        <button onClick={() => createJob(description, budget, duration)}>
           Create Job
         </button>
       </div>
 
       {/* List of Jobs */}
       {jobs.map((job) => (
-        <div
-          key={job.id}
-          style={{ border: "1px solid gray", padding: "10px", margin: "10px" }}
-        >
-          <h3>Job ID: {job.id}</h3>
-          <p>{job.description}</p>
-          <p>Budget: {job.price} AVAX</p>
-          <p>Freelancer: {job.freelancer || "Not Assigned"}</p>
-          <p>Status: {job.isCompleted ? "Completed" : "In Progress"}</p>
-          <p>Paid: {job.isPaid ? "Yes" : "No"}</p>
-          <p>Posted by: {job.employer}</p>
-          {!job.isTaken &&
-            job.employer.toString().toLowerCase() !== currentAccount && (
-              <button
-                onClick={() => applyForJob(job.id)}
-                className="bg-blue-500 text-white px-4 py-2 mt-2 rounded"
-              >
-                Apply
-              </button>
-            )}
-
-          {job.isApplied && (
-            <>
-              {job.employer.toString().toLowerCase() == currentAccount &&
-                !job.isCompleted && (
-                  <button
-                    onClick={() => acceptFreelancer(job?.id)}
-                    className="bg-green-500 text-white px-4 py-2 mt-2 rounded"
-                  >
-                    Accept Freelancer
-                  </button>
-                )}
-            </>
-          )}
-
-          {job.employer?.toString().toLowerCase() === currentAccount &&
-            job.isCompleted && (
-              <button
-                onClick={() => approveWork(job.id)}
-                className="bg-green-500 text-white px-4 py-2 mt-2 rounded"
-              >
-                Approve Work & Pay
-              </button>
-            )}
-
-          {/* {!job.freelancer && (
-            <button onClick={() => acceptJob(job.id)}>Accept Job</button>
-          )}
-          {job.freelancer && !job.isCompleted && (
-            <button onClick={() => completeJob(job.id)}>Complete Job</button>
-          )}
-          {job.freelancer && job.isCompleted && !job.isPaid && (
-            <button onClick={() => releasePayment(job.id)}>
-              Release Payment
-            </button>
-          )} */}
-        </div>
+        <JobCard
+          key={job?.id}
+          job={job}
+          currentAccount={currentAccount}
+          fetchJobs={fetchJobs}
+          approveWork={approveWork}
+        />
       ))}
     </div>
   );

@@ -5,6 +5,7 @@ import { getContract } from "../utils/contract";
 const FreelancerScreen = () => {
   const [jobs, setJobs] = useState([]);
   const [currentAccount, setCurrentAccount] = useState(null);
+  const [workLink, setWorkLink] = useState(""); // State to store work link
 
   useEffect(() => {
     fetchJobs();
@@ -21,8 +22,8 @@ const FreelancerScreen = () => {
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-      setCurrentAccount(accounts[0]);
-      console.log("Connected wallet:", accounts[0]);
+      setCurrentAccount(accounts[1]);
+      console.log("Connected wallet:", accounts[1]);
     } catch (error) {
       console.error("Error connecting wallet:", error);
     }
@@ -44,12 +45,15 @@ const FreelancerScreen = () => {
         jobsArray.push({
           id: job[0].toString(),
           description: job[1],
-          price: ethers.formatEther(job[2]), // Convert from Wei to ETH
-          employer: job[3],
-          freelancer: job[4],
-          isAssigned: job[5],
-          isCompleted: job[6],
-          isPaid: job[7],
+          price: ethers.formatEther(job[2]),
+          duration: job[3], // Convert from Wei to ETH
+          employer: job[4],
+          freelancer: job[5],
+          appliedFreelancers: job[6],
+          isAssigned: job[7],
+          isCompleted: job[8],
+          isPaid: job[9],
+          workLink: job[10],
         });
       }
 
@@ -75,10 +79,29 @@ const FreelancerScreen = () => {
       fetchJobs(); // Refresh job list
     } catch (error) {
       console.error("Error applying for job:", error);
+      alert(error.reason);
     }
   };
 
-  console.log(jobs);
+  const submitWork = async (jobId) => {
+    try {
+      const contract = await getContract();
+      console.log("Available contract functions:", contract.functions);
+
+      const tx = await contract.submitWork(jobId, workLink);
+      await tx.wait();
+      console.log("Work submitted successfully!");
+      loadJobs(); // ✅ Refresh job list
+    } catch (error) {
+      console.error("Error submitting work:", error);
+    }
+  };
+
+  const loadJobs = async () => {
+    const contract = await getContract();
+    const jobsData = await contract.getAllJobs();
+    setJobs(jobsData);
+  };
 
   return (
     <div className="App">
@@ -106,17 +129,22 @@ const FreelancerScreen = () => {
             </button>
           ) : (
             <p className="text-green-500">Applied</p>
-
           )}
 
           {job.freelancer.toString().toLowerCase() === currentAccount &&
             !job.isCompleted && (
-              <button
-                onClick={() => submitWork(job.id)}
-                className="bg-blue-500 text-white px-4 py-2 mt-2 rounded"
-              >
-                Submit Work Link
-              </button>
+              <>
+                <input
+                  value={workLink}
+                  onChange={(e) => setWorkLink(e.target.value)}
+                />
+                <button
+                  onClick={() => submitWork(job.id)}
+                  className="bg-blue-500 text-white px-4 py-2 mt-2 rounded"
+                >
+                  Submit Work Link
+                </button>
+              </>
             )}
 
           {/* {!job.freelancer && (

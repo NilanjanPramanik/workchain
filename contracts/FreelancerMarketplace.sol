@@ -204,12 +204,22 @@ contract FreelancerMarketplace {
         uint id;
         string description;
         uint budget;
+        uint duration;
         address payable client;
         address payable freelancer;
         address[] appliedFreelancers; // Store applied freelancers
         bool isAssigned;
         bool isCompleted;
         bool isPaid;
+        string workLink;
+    }
+
+    struct Freelancer {
+        address freelancerAddress;
+        // string name;
+        string bio;
+        string skills;
+        uint rating;
     }
 
     uint public jobCount;
@@ -224,10 +234,23 @@ contract FreelancerMarketplace {
     event JobApplied(uint jobId, address freelancer); // New event
     event JobAccepted(uint jobId, address freelancer);
     event JobCompleted(uint jobId);
-    event PaymentReleased(uint jobId, address freelancer);
     event FreelancerAccepted(uint jobId, address freelancer);
+    event WorkSubmitted(
+        uint256 indexed jobId,
+        address indexed freelancer,
+        string workLink
+    );
+    event PaymentReleased(
+        uint256 indexed jobId,
+        address indexed freelancer,
+        uint256 amount
+    );
 
-    function createJob(string memory _description) external payable {
+    function createJob(
+        string memory _description,
+        uint256 _duration,
+        string memory workLink
+    ) external payable {
         require(msg.value > 0, "Budget must be greater than 0");
 
         jobCount++;
@@ -235,12 +258,14 @@ contract FreelancerMarketplace {
             jobCount,
             _description,
             msg.value,
+            _duration,
             payable(msg.sender),
             payable(address(0)),
             new address[](0), // Initialize appliedFreelancers as an empty array
             false,
             false,
-            false
+            false,
+            workLink = "N/A"
         );
 
         emit JobCreated(jobCount, _description, msg.value, msg.sender);
@@ -255,12 +280,14 @@ contract FreelancerMarketplace {
             uint256 id,
             string memory description,
             uint256 budget,
+            uint256 duration,
             address client,
             address freelancer,
             address[] memory appliedFreelancer,
             bool isAssigned,
             bool isCompleted,
-            bool isPaid
+            bool isPaid,
+            string memory workLink
         )
     {
         require(_jobId > 0 && _jobId <= jobCount, "Invalid job ID"); // Ensure valid ID
@@ -271,12 +298,14 @@ contract FreelancerMarketplace {
             job.id,
             job.description,
             job.budget,
+            job.duration,
             job.client, // Use client instead of employer
             job.freelancer,
             job.appliedFreelancers,
             job.isAssigned,
             job.isCompleted,
-            job.isPaid
+            job.isPaid,
+            job.workLink
         );
     }
 
@@ -306,6 +335,8 @@ contract FreelancerMarketplace {
 
     function acceptFreelancer(uint256 _jobId, address _freelancer) external {
         require(_jobId > 0 && _jobId <= jobCount, "Invalid job ID");
+        require(_freelancer != address(0), "Invalid freelancer address");
+
         Job storage job = jobs[_jobId];
         require(
             msg.sender == job.client,
@@ -328,4 +359,93 @@ contract FreelancerMarketplace {
 
         emit FreelancerAccepted(_jobId, _freelancer);
     }
+
+    function submitWork(uint256 _jobId, string memory _workLink) external {
+        require(_jobId > 0 && _jobId <= jobCount, "Invalid job ID");
+        Job storage job = jobs[_jobId];
+
+        require(
+            msg.sender == job.freelancer,
+            "Only assigned freelancer can submit work"
+        );
+        require(job.isAssigned, "Freelancer has not been accepted yet");
+        require(!job.isCompleted, "Job is already completed");
+        require(bytes(_workLink).length > 0, "Work link cannot be empty"); // ✅ Added validation
+
+        job.isCompleted = true;
+        job.workLink = _workLink;
+
+        emit WorkSubmitted(_jobId, msg.sender, _workLink);
+    }
+
+    // function approveWork(uint256 _jobId) external {
+    //     require(_jobId > 0 && _jobId <= jobCount, "Invalid job ID");
+    //     Job storage job = jobs[_jobId];
+
+    //     require(msg.sender == job.client, "Only employer can approve work");
+    //     require(job.isCompleted == true, "Work is not submitted yet");
+    //     require(job.isAssigned == true, "No freelancer assigned");
+    //     require(
+    //         address(this).balance >= job.budget,
+    //         "Contract balance is insufficient"
+    //     );
+
+    //     job.freelancer.transfer(job.budget); // ✅ Transfer payment to freelancer
+    //     job.isCompleted = true; // ✅ Mark job as closed
+
+    //     emit PaymentReleased(_jobId, job.freelancer, job.budget);
+    //     bool success = job.freelancer.send(job.budget); // Transfer payment to freelancer
+    //     require(success, "Payment transfer failed");
+    //     job.isPaid = true;
+    //     emit PaymentReleased(_jobId, job.freelancer, job.budget);
+    // }
+
+    function approveWork(uint256 _jobId) external {
+        Job storage job = jobs[_jobId];
+        require(job.client == msg.sender, "Only employer can approve");
+        require(job.isAssigned, "Job not assigned");
+        require(job.isCompleted, "Job already completed");
+
+        job.isCompleted = true;
+        job.isPaid = true;
+
+        // Transfer payment to freelancer
+        payable(job.freelancer).transfer(job.budget);
+        emit PaymentReleased(_jobId, job.freelancer, job.budget);
+    }
+
+    // function approveWork(uint256 _jobId) external {
+    //     require(_jobId > 0 && _jobId <= jobCount, "Invalid job ID");
+    //     Job storage job = jobs[_jobId];
+
+    //     require(msg.sender == job.client, "Only employer can approve work");
+    //     require(job.isCompleted, "Work is not submitted yet");
+    //     require(job.isAssigned, "No freelancer assigned");
+    //     require(
+    //         address(this).balance >= job.budget,
+    //         "Contract balance is insufficient"
+    //     );
+    //     require(!job.isPaid, "Payment already made");
+
+    //     job.isPaid = true;
+    //     (bool success, ) = job.freelancer.call{value: job.budget}("");
+    //     require(success, "Payment transfer failed");
+
+    //     emit PaymentReleased(_jobId, job.freelancer, job.budget);
+    // }
+
+    function getContractBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
+
+    // function releasePayment(uint _jobId) internal {
+    //     Job storage job = jobs[_jobId];
+    //     require(msg.sender == job.client, "Only client can release payment");
+    //     require(job.isCompleted, "Job is not completed yet");
+    //     require(!job.isPaid, "Payment already released");
+
+    //     job.isPaid = true;
+    //     job.freelancer.transfer(job.budget);
+    //     emit PaymentReleased(_jobId, job.freelancer, job.budget);
+    // }
 }
