@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import contractABI from "../../artifacts/contracts/FreelancerMarketplace.sol/FreelancerMarketplace.json";
 
-const CONTRACT_ADDRESS = "0xF36F520eC1BC95c2F6bfBF6B17bE2e8b3dFc23c3";
+const CONTRACT_ADDRESS = "0xdff22Dc5F0641a4821B2403B60462d1dfF490423";
 
 export const getContract = async () => {
   if (typeof window.ethereum === "undefined") {

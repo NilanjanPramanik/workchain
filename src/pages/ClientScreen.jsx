@@ -11,6 +11,14 @@ const ClientScreen = () => {
   const [budget, setBudget] = useState("");
   const [duration, setDuration] = useState("");
 
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [location, setLocation] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [bio, setBio] = useState("");
+  const [email, setEmail] = useState("");
+
   useEffect(() => {
     fetchJobs();
     connectWallet();
@@ -26,10 +34,42 @@ const ClientScreen = () => {
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
+
       setCurrentAccount(accounts[0]);
       console.log("Connected wallet:", accounts[0]);
+
+      // Check if the freelancer is registered
+      const contract = await getContract();
+      const registered = await contract.isClientRegistered(accounts[0]);
+      setIsRegistered(registered);
     } catch (error) {
       console.error("Error connecting wallet:", error);
+    }
+  };
+
+  const registerClient = async () => {
+    try {
+      const contract = await getContract();
+      if (!contract) {
+        console.error("Contract not initialized");
+        return;
+      }
+
+      const tx = await contract.registerClient(
+        name,
+        parseInt(age),
+        location,
+        phoneNumber,
+        email,
+        bio
+      );
+      await tx.wait(); // Wait for transaction confirmation
+
+      console.log("Client registered successfully!");
+
+      setIsRegistered(true); // Update state to reflect registration
+    } catch (error) {
+      console.error("Error registering client:", error);
     }
   };
 
@@ -119,6 +159,100 @@ const ClientScreen = () => {
   //   // const jobsData = await contract.getAllJobs();
   //   // setJobs(jobsData);
   // };
+
+  if (!isRegistered)
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          minWidth: "420px",
+          backgroundColor: "",
+        }}
+      >
+        <h2>Register as a Work Provider</h2>
+        <input
+          type="text"
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="Age"
+          value={age}
+          onChange={(e) => setAge(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="Location"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="Phone Number"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="Bio"
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <button onClick={registerClient}>Register</button>
+      </div>
+    );
 
   return (
     <div className="App">

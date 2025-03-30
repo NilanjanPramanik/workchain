@@ -213,43 +213,41 @@ contract FreelancerMarketplace {
         bool isPaid;
         string workLink;
     }
-
     struct Freelancer {
         address freelancerAddress;
         string name;
+        uint age;
+        string location;
+        string phoneNumber;
+        string email;
         string bio;
         string skills;
+        string portfolioURL; // Fixed spelling
+        string linkedInURL;
         uint rating;
     }
+
+    struct Client {
+        address clientAddress;
+        string name;
+        uint age;
+        string location;
+        string phoneNumber;
+        string email;
+        string bio;
+    }
+
+    // struct Admin {
+    //     address adminAddress;
+    //     string name;
+    //     string phoneNumber;
+    //     string email;
+    // }
 
     uint public jobCount;
     mapping(uint => Job) public jobs;
     mapping(address => Freelancer) public freelancers;
-
-    function registerFreelancer(
-        string memory _name,
-        string memory _bio,
-        string memory _skills
-    ) public {
-        require(
-            bytes(freelancers[msg.sender].name).length == 0,
-            "Freelancer already registered"
-        );
-
-        freelancers[msg.sender] = Freelancer({
-            freelancerAddress: msg.sender,
-            name: _name,
-            bio: _bio,
-            skills: _skills,
-            rating: 0 // Initial rating is 0
-        });
-    }
-
-    function isFreelancerRegistered(
-        address _freelancer
-    ) public view returns (bool) {
-        return bytes(freelancers[_freelancer].name).length > 0;
-    }
+    mapping(address => Client) public clients;
 
     event JobCreated(
         uint jobId,
@@ -271,6 +269,141 @@ contract FreelancerMarketplace {
         address indexed freelancer,
         uint256 amount
     );
+
+    function isFreelancerRegistered(
+        address _freelancer
+    ) public view returns (bool) {
+        return bytes(freelancers[_freelancer].name).length > 0;
+    }
+
+    function registerFreelancer(
+        string memory _name,
+        uint _age,
+        string memory _location,
+        string memory _phoneNumber,
+        string memory _email,
+        string memory _bio,
+        string memory _skills,
+        string memory _portfolioURL, // Fixed spelling
+        string memory _linkedInURL
+    ) public {
+        require(
+            bytes(freelancers[msg.sender].name).length == 0,
+            "Freelancer already registered"
+        );
+
+        freelancers[msg.sender] = Freelancer({
+            freelancerAddress: msg.sender,
+            name: _name,
+            age: _age,
+            location: _location,
+            phoneNumber: _phoneNumber,
+            email: _email,
+            bio: _bio,
+            skills: _skills,
+            portfolioURL: _portfolioURL, // Fixed spelling
+            linkedInURL: _linkedInURL,
+            rating: 0 // Initial rating is 0
+        });
+    }
+
+    // Get Freelancer Details
+    function getFreelancer(
+        address _freelancer
+    )
+        public
+        view
+        returns (
+            address,
+            uint,
+            string memory,
+            string memory,
+            string memory,
+            string memory,
+            string memory,
+            string memory,
+            string memory,
+            string memory,
+            uint // Returning rating as uint
+        )
+    {
+        Freelancer memory freelancer = freelancers[_freelancer];
+        require(bytes(freelancer.name).length > 0, "Freelancer not found");
+
+        return (
+            freelancer.freelancerAddress,
+            freelancer.age,
+            freelancer.name,
+            freelancer.location,
+            freelancer.phoneNumber,
+            freelancer.email,
+            freelancer.bio,
+            freelancer.skills,
+            freelancer.portfolioURL, // Fixed spelling
+            freelancer.linkedInURL,
+            freelancer.rating // Now included in the return values
+        );
+    }
+
+    // Function to check if a client is registered
+    function isClientRegistered(address _client) public view returns (bool) {
+        return bytes(clients[_client].name).length > 0;
+    }
+
+    // Event for logging client registration
+    event ClientRegistered(address indexed clientAddress, string name);
+
+    // Function to register a new client
+    function registerClient(
+        string memory _name,
+        uint _age,
+        string memory _location,
+        string memory _phoneNumber,
+        string memory _email,
+        string memory _bio
+    ) public {
+        require(!isClientRegistered(msg.sender), "Client already registered");
+
+        clients[msg.sender] = Client({
+            clientAddress: msg.sender,
+            name: _name,
+            age: _age,
+            location: _location,
+            phoneNumber: _phoneNumber,
+            email: _email,
+            bio: _bio
+        });
+
+        emit ClientRegistered(msg.sender, _name);
+    }
+
+    // Function to get client details
+    function getClient(
+        address _client
+    )
+        public
+        view
+        returns (
+            string memory name,
+            uint age,
+            string memory location,
+            string memory phoneNumber,
+            string memory email,
+            string memory bio
+        )
+    {
+        require(isClientRegistered(_client), "Client not found");
+        Client memory client = clients[_client];
+
+        return (
+            client.name,
+            client.age,
+            client.location,
+            client.phoneNumber,
+            client.email,
+            client.bio
+        );
+    }
 
     function createJob(
         string memory _description,
@@ -325,7 +458,7 @@ contract FreelancerMarketplace {
             job.description,
             job.budget,
             job.duration,
-            job.client, // Use client instead of employer
+            job.client,
             job.freelancer,
             job.appliedFreelancers,
             job.isAssigned,
@@ -405,60 +538,55 @@ contract FreelancerMarketplace {
     }
 
     // function approveWork(uint256 _jobId) external {
-    //     require(_jobId > 0 && _jobId <= jobCount, "Invalid job ID");
     //     Job storage job = jobs[_jobId];
+    //     require(job.client == msg.sender, "Only employer can approve");
+    //     require(job.isAssigned, "Job not assigned");
+    //     require(job.isCompleted, "Job already completed");
 
-    //     require(msg.sender == job.client, "Only employer can approve work");
-    //     require(job.isCompleted == true, "Work is not submitted yet");
-    //     require(job.isAssigned == true, "No freelancer assigned");
-    //     require(
-    //         address(this).balance >= job.budget,
-    //         "Contract balance is insufficient"
-    //     );
-
-    //     job.freelancer.transfer(job.budget); // ✅ Transfer payment to freelancer
-    //     job.isCompleted = true; // ✅ Mark job as closed
-
-    //     emit PaymentReleased(_jobId, job.freelancer, job.budget);
-    //     bool success = job.freelancer.send(job.budget); // Transfer payment to freelancer
-    //     require(success, "Payment transfer failed");
+    //     job.isCompleted = true;
     //     job.isPaid = true;
+
+    //     // Transfer payment to freelancer
+    //     payable(job.freelancer).transfer(job.budget);
     //     emit PaymentReleased(_jobId, job.freelancer, job.budget);
     // }
 
     function approveWork(uint256 _jobId) external {
+        require(_jobId > 0 && _jobId <= jobCount, "Invalid job ID");
         Job storage job = jobs[_jobId];
-        require(job.client == msg.sender, "Only employer can approve");
-        require(job.isAssigned, "Job not assigned");
-        require(job.isCompleted, "Job already completed");
 
-        job.isCompleted = true;
+        // Basic validations
+        require(msg.sender == job.client, "Only employer can approve work");
+        require(job.isAssigned, "No freelancer assigned");
+        require(job.isCompleted, "Work not submitted yet");
+        require(!job.isPaid, "Payment already released");
+
+        // Ensure we have a valid freelancer and sufficient balance
+        require(job.freelancer != address(0), "Invalid freelancer address");
+        require(
+            address(this).balance >= job.budget,
+            "Contract balance insufficient"
+        );
+
+        // Store the payment amount
+        uint256 payment = job.budget;
+
+        // Mark as paid BEFORE transfer to prevent reentrancy
         job.isPaid = true;
 
-        // Transfer payment to freelancer
-        payable(job.freelancer).transfer(job.budget);
-        emit PaymentReleased(_jobId, job.freelancer, job.budget);
+        // Transfer the payment using a low-level call
+        (bool sent, ) = job.freelancer.call{value: payment, gas: 2300}("");
+        require(sent, "Failed to send payment");
+
+        // Emit the event after successful transfer
+        emit PaymentReleased(_jobId, job.freelancer, payment);
     }
 
-    // function approveWork(uint256 _jobId) external {
-    //     require(_jobId > 0 && _jobId <= jobCount, "Invalid job ID");
-    //     Job storage job = jobs[_jobId];
+    // Fallback function to receive ETH
+    receive() external payable {}
 
-    //     require(msg.sender == job.client, "Only employer can approve work");
-    //     require(job.isCompleted, "Work is not submitted yet");
-    //     require(job.isAssigned, "No freelancer assigned");
-    //     require(
-    //         address(this).balance >= job.budget,
-    //         "Contract balance is insufficient"
-    //     );
-    //     require(!job.isPaid, "Payment already made");
-
-    //     job.isPaid = true;
-    //     (bool success, ) = job.freelancer.call{value: job.budget}("");
-    //     require(success, "Payment transfer failed");
-
-    //     emit PaymentReleased(_jobId, job.freelancer, job.budget);
-    // }
+    // Backup fallback function
+    fallback() external payable {}
 
     function getContractBalance() public view returns (uint256) {
         return address(this).balance;

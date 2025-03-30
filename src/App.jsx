@@ -294,11 +294,13 @@ import { BrowserRouter, Route, Router, Routes } from "react-router-dom";
 import ClientScreen from "./pages/ClientScreen";
 import AdminScreen from "./pages/AdminScreen";
 import FreelancerScreen from "./pages/FreelancerScreen";
+import HomeScreen from "./pages/HomeScreen";
 
 const App = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<HomeScreen />} />
         <Route path="/client" element={<ClientScreen />} />
         <Route path="/freelancer" element={<FreelancerScreen />} />
         <Route path="/admin" element={<AdminScreen />} />

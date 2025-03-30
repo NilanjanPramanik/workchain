@@ -10,8 +10,16 @@ const FreelancerScreen = () => {
   const [workLink, setWorkLink] = useState(""); // State to store work link
   const [isRegistered, setIsRegistered] = useState(false);
   const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [location, setLocation] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [bio, setBio] = useState("");
   const [skills, setSkills] = useState("");
+  const [portfolioURL, setPortfolioURL] = useState("");
+  const [linkedInURL, setLinkedInURL] = useState("");
+  const [email, setEmail] = useState("");
+
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
     fetchJobs();
@@ -118,7 +126,18 @@ const FreelancerScreen = () => {
   const registerFreelancer = async () => {
     try {
       const contract = await getContract();
-      const tx = await contract.registerFreelancer(name, bio, skills);
+
+      const tx = await contract.registerFreelancer(
+        name,
+        age,
+        location,
+        phoneNumber,
+        email,
+        bio,
+        skills,
+        portfolioURL ? portfolioURL : "N/A",
+        linkedInURL ? linkedInURL : "N/A"
+      );
       await tx.wait();
 
       console.log("Freelancer registered successfully!");
@@ -132,35 +151,141 @@ const FreelancerScreen = () => {
 
   if (!isRegistered)
     return (
-      <div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          minWidth: "420px",
+          backgroundColor: "",
+        }}
+      >
         <h2>Register as a Freelancer</h2>
         <input
           type="text"
           placeholder="Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
         />
+
+        <input
+          type="text"
+          placeholder="Age"
+          value={age}
+          onChange={(e) => setAge(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="Location"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="Phone Number"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
         <input
           type="text"
           placeholder="Bio"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
         />
         <input
           type="text"
           placeholder="Skills (comma-separated)"
           value={skills}
           onChange={(e) => setSkills(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
         />
+
+        <input
+          type="text"
+          placeholder="Portfolio URL"
+          value={portfolioURL}
+          onChange={(e) => setPortfolioURL(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="LinkedIn URL"
+          value={linkedInURL}
+          onChange={(e) => setLinkedInURL(e.target.value)}
+          style={{
+            padding: "15px",
+            paddingX: "20px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
+        />
+
         <button onClick={registerFreelancer}>Register</button>
       </div>
     );
 
   return (
     <div className="App">
-      <h1>Freelancer Marketplace for Freelancer</h1>
+      <h1></h1>
 
-      <select
+      {/* <select
         value={selectedAccount}
         onChange={(e) => {
           setSelectedAccount(e.target.value);
@@ -172,11 +297,11 @@ const FreelancerScreen = () => {
             {account}
           </option>
         ))}
-      </select>
+      </select> */}
 
-      <button onClick={() => console.log("Selected Account:", selectedAccount)}>
+      {/* <button onClick={() => console.log("Selected Account:", selectedAccount)}>
         Confirm Selection
-      </button>
+      </button> */}
 
       {/* List of Jobs */}
       {jobs.map((job) => (
