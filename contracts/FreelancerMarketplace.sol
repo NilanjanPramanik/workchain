@@ -202,6 +202,7 @@ pragma solidity ^0.8.18;
 contract FreelancerMarketplace {
     struct Job {
         uint id;
+        string title;
         string description;
         uint budget;
         uint duration;
@@ -307,6 +308,7 @@ contract FreelancerMarketplace {
         });
     }
 
+
     // Get Freelancer Details
     function getFreelancer(
         address _freelancer
@@ -344,6 +346,7 @@ contract FreelancerMarketplace {
             freelancer.rating // Now included in the return values
         );
     }
+    
 
     // Function to check if a client is registered
     function isClientRegistered(address _client) public view returns (bool) {
@@ -405,7 +408,12 @@ contract FreelancerMarketplace {
         );
     }
 
+
+
+
+
     function createJob(
+        string memory _title,
         string memory _description,
         uint256 _duration,
         string memory workLink
@@ -413,8 +421,9 @@ contract FreelancerMarketplace {
         require(msg.value > 0, "Budget must be greater than 0");
 
         jobCount++;
-        jobs[jobCount] = Job(
+        jobs[jobCount] = Job( 
             jobCount,
+            _title,
             _description,
             msg.value,
             _duration,
@@ -437,6 +446,7 @@ contract FreelancerMarketplace {
         view
         returns (
             uint256 id,
+            string memory title,
             string memory description,
             uint256 budget,
             uint256 duration,
@@ -455,6 +465,7 @@ contract FreelancerMarketplace {
 
         return (
             job.id,
+            job.title,
             job.description,
             job.budget,
             job.duration,

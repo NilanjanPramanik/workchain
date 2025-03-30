@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { getContract } from "../utils/contract";
+import JobCardViewOnly from "../components/JobCardViewOnly";
 
 const FreelancerScreen = () => {
   const [jobs, setJobs] = useState([]);
@@ -24,7 +25,36 @@ const FreelancerScreen = () => {
   useEffect(() => {
     fetchJobs();
     connectWallet();
-  }, []);
+    getFreelancer(currentAccount); // Fetch freelancer data on load
+  }, [currentAccount]);
+
+  const getFreelancer = async (address) => {
+    try {
+      const contract = await getContract();
+      if (!contract) {
+        console.error("Contract not initialized");
+        return;
+      }
+
+      const freelancer = await contract.getFreelancer(address);
+      console.log("Freelancer data:", freelancer);
+      setUserData({
+        id: freelancer[0].toString(),
+        age: freelancer[1].toString(),
+        name: freelancer[2],
+        location: freelancer[3],
+        phoneNumber: freelancer[4],
+        email: freelancer[5],
+        bio: freelancer[6],
+        skills: freelancer[7],
+        portfolioURL: freelancer[8],
+        linkedInURL: freelancer[9],
+        rating: freelancer[10].toString(),
+      });
+    } catch (error) {
+      console.error("Error fetching freelancer data:", error);
+    }
+  };
 
   const connectWallet = async () => {
     try {
@@ -64,16 +94,17 @@ const FreelancerScreen = () => {
         const job = await contract.getJob(i); // Fetch each job
         jobsArray.push({
           id: job[0].toString(),
-          description: job[1],
-          price: ethers.formatEther(job[2]),
-          duration: job[3], // Convert from Wei to ETH
-          employer: job[4],
-          freelancer: job[5],
-          appliedFreelancers: job[6],
-          isAssigned: job[7],
-          isCompleted: job[8],
-          isPaid: job[9],
-          workLink: job[10],
+          title: job[1],
+          description: job[2],
+          price: ethers.formatEther(job[3]),
+          duration: job[4], // Convert from Wei to ETH
+          employer: job[5],
+          freelancer: job[6],
+          appliedFreelancers: job[7],
+          isAssigned: job[8],
+          isCompleted: job[9],
+          isPaid: job[10],
+          workLink: job[11],
         });
       }
 
@@ -81,39 +112,6 @@ const FreelancerScreen = () => {
       setJobs(jobsArray); // Store in React state
     } catch (error) {
       console.error("Error fetching jobs:", error);
-    }
-  };
-
-  const applyForJob = async (jobId) => {
-    try {
-      const contract = await getContract();
-      if (!contract) {
-        console.error("Contract not initialized");
-        return;
-      }
-
-      const tx = await contract.applyForJob(jobId);
-      await tx.wait();
-
-      console.log(`Applied for job #${jobId}`);
-      fetchJobs(); // Refresh job list
-    } catch (error) {
-      console.error("Error applying for job:", error);
-      alert(error.reason);
-    }
-  };
-
-  const submitWork = async (jobId) => {
-    try {
-      const contract = await getContract();
-      console.log("Available contract functions:", contract.functions);
-
-      const tx = await contract.submitWork(jobId, workLink);
-      await tx.wait();
-      console.log("Work submitted successfully!");
-      loadJobs(); // ✅ Refresh job list
-    } catch (error) {
-      console.error("Error submitting work:", error);
     }
   };
 
@@ -142,12 +140,11 @@ const FreelancerScreen = () => {
 
       console.log("Freelancer registered successfully!");
       setIsRegistered(true); // Update state after registration
+      window.location.reload(); // Reload the page to fetch updated data
     } catch (error) {
       console.error("Error registering freelancer:", error);
     }
   };
-
-  console.log(currentAccount);
 
   if (!isRegistered)
     return (
@@ -281,83 +278,25 @@ const FreelancerScreen = () => {
       </div>
     );
 
-  return (
-    <div className="App">
-      <h1></h1>
+  if (userData)
+    return (
+      <div className="w-screen min-h-screen flex flex-col p-4">
+        <h2 className="text-xl">Welcome {userData.name},</h2>
 
-      {/* <select
-        value={selectedAccount}
-        onChange={(e) => {
-          setSelectedAccount(e.target.value);
-          setCurrentAccount(e.target.value);
-        }}
-      >
-        {accounts.map((account) => (
-          <option key={account} value={account}>
-            {account}
-          </option>
-        ))}
-      </select> */}
-
-      {/* <button onClick={() => console.log("Selected Account:", selectedAccount)}>
-        Confirm Selection
-      </button> */}
-
-      {/* List of Jobs */}
-      {jobs.map((job) => (
-        <div
-          key={job.id}
-          style={{ border: "1px solid gray", padding: "10px", margin: "10px" }}
-        >
-          <h3>Job ID: {job.id}</h3>
-          <p>{job.description}</p>
-          <p>Budget: {job.price} AVAX</p>
-          <p>Freelancer: {job.freelancer || "Not Assigned"}</p>
-          <p>Status: {job.isCompleted ? "Completed" : "In Progress"}</p>
-          <p>Paid: {job.isPaid ? "Yes" : "No"}</p>
-          <p>Posted by: {job.employer}</p>
-          {!job.isApplied ? (
-            <button
-              onClick={() => applyForJob(job.id)}
-              className="bg-blue-500 text-white px-4 py-2 mt-2 rounded"
-            >
-              Apply
-            </button>
-          ) : (
-            <p className="text-green-500">Applied</p>
-          )}
-
-          {job.freelancer.toString().toLowerCase() === currentAccount &&
-            !job.isCompleted && (
-              <>
-                <input
-                  value={workLink}
-                  onChange={(e) => setWorkLink(e.target.value)}
-                />
-                <button
-                  onClick={() => submitWork(job.id)}
-                  className="bg-blue-500 text-white px-4 py-2 mt-2 rounded"
-                >
-                  Submit Work Link
-                </button>
-              </>
+        {/* List of Jobs */}
+        <div className="flex flex-col gap-4 mt-4 bg-black/5 backdrop-blur-lg rounded-lg shadow-md max-w-4xl p-4">
+          <h2 className="text-lgs ">Active Jobs</h2>
+          <div className="flex flex-col gap-4 mt-4">
+            {jobs.map((job) => (
+              <JobCardViewOnly key={job.id} job={job} />
+            ))}
+            {jobs.length === 0 && (
+              <div className="text-gray-500">No jobs available</div>
             )}
-
-          {/* {!job.freelancer && (
-            <button onClick={() => acceptJob(job.id)}>Accept Job</button>
-          )}
-          {job.freelancer && !job.isCompleted && (
-            <button onClick={() => completeJob(job.id)}>Complete Job</button>
-          )}
-          {job.freelancer && job.isCompleted && !job.isPaid && (
-            <button onClick={() => releasePayment(job.id)}>
-              Release Payment
-            </button>
-          )} */}
+          </div>
         </div>
-      ))}
-    </div>
-  );
+      </div>
+    );
 };
 
 export default FreelancerScreen;

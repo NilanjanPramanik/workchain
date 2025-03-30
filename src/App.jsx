@@ -295,6 +295,7 @@ import ClientScreen from "./pages/ClientScreen";
 import AdminScreen from "./pages/AdminScreen";
 import FreelancerScreen from "./pages/FreelancerScreen";
 import HomeScreen from "./pages/HomeScreen";
+import JobScreen from "./pages/JobScreen";
 
 const App = () => {
   return (
@@ -304,6 +305,7 @@ const App = () => {
         <Route path="/client" element={<ClientScreen />} />
         <Route path="/freelancer" element={<FreelancerScreen />} />
         <Route path="/admin" element={<AdminScreen />} />
+        <Route path="/job/:id" element={<JobScreen />} />
       </Routes>
     </BrowserRouter>
   );
